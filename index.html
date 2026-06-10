@@ -93,28 +93,36 @@ async function cargarExpediente(codigo) {
 }
 
 function mostrar(codigo, data) {
-  const exp = data.objExpediente || data;
-  const docs = data.lstDocumentos || data.documentos || [];
-  const cands = data.lstCandidatos || data.candidatos || [];
+  const root = data.data || data;
+  // El expediente principal: si lAsociadosHijos tiene 1 elemento que coincide con el código buscado, usarlo
+  const hijos = root.lAsociadosHijos || [];
+  let principal = root;
+  const match = hijos.find(h => h.strCodExpedienteExt === codigo);
+  if (match) principal = match;
+  else if (!root.strCodExpedienteExt && hijos.length === 1) principal = hijos[0];
 
-  let docsHTML = '';
-  if (docs.length) {
-    docsHTML = `<div class="seccion-titulo">Documentos (${docs.length})</div>
-    <table><thead><tr><th>#</th><th>Fecha</th><th>N° Documento</th><th>Tipo</th><th>Estado</th></tr></thead><tbody>`;
-    docs.forEach((d, i) => {
-      docsHTML += `<tr><td>${i+1}</td><td>${(d.strFechaDocumento||'').substring(0,10)}</td><td>${d.strNroDocumento||d.strCodArchivo||'-'}</td><td>${d.strTipoExpediente||'-'}</td><td>${d.strEstadoExped||'-'}</td></tr>`;
-    });
-    docsHTML += '</tbody></table>';
-  }
+  const fmtFecha = (f) => {
+    if (!f) return '-';
+    const d = new Date(f);
+    if (isNaN(d)) return f.toString().substring(0,10);
+    return d.toLocaleDateString('es-PE');
+  };
 
-  let candsHTML = '';
-  if (cands.length) {
-    candsHTML = `<div class="seccion-titulo">Candidatos (${cands.length})</div>
-    <table><thead><tr><th>Pos</th><th>DNI</th><th>Apellidos y Nombres</th><th>Estado</th></tr></thead><tbody>`;
-    cands.forEach(c => {
-      candsHTML += `<tr><td>${c.intPosicion||'-'}</td><td>${c.strDocumentoIdentidad||'-'}</td><td>${(c.strApellidoPaterno||'')} ${(c.strApellidoMaterno||'')} ${(c.strNombres||'')}</td><td>${c.strEstado||'-'}</td></tr>`;
+  let hijosHTML = '';
+  if (hijos.length) {
+    hijosHTML = `<div class="seccion-titulo">Expedientes Asociados (${hijos.length})</div>
+    <table><thead><tr><th>Código</th><th>Tipo</th><th>Materia</th><th>Estado</th><th>Etapa</th><th>JEE</th></tr></thead><tbody>`;
+    hijos.forEach(h => {
+      hijosHTML += `<tr>
+        <td><strong>${h.strCodExpedienteExt||'-'}</strong></td>
+        <td>${h.strTipoExpediente||'-'}</td>
+        <td>${h.strMateria||'-'}</td>
+        <td>${h.strEstado||'-'}</td>
+        <td>${h.strEtapa||'-'}</td>
+        <td>${h.strJuradoCompetencia||'-'}</td>
+      </tr>`;
     });
-    candsHTML += '</tbody></table>';
+    hijosHTML += '</tbody></table>';
   }
 
   document.getElementById('card').innerHTML = `
@@ -123,18 +131,18 @@ function mostrar(codigo, data) {
       <div class="header-text"><h1>Plataforma Histórica</h1><p>Búsqueda de Expedientes</p></div>
     </div>
     <div class="exp-titulo">${codigo}</div>
-    <span class="estado-badge">${exp.strEstadoJEE || exp.strEstadoExped || 'Sin estado'}</span>
+    <span class="estado-badge">${principal.strEstado || 'Sin estado'}</span>
     <div class="grid">
-      <div class="campo"><label>Tipo de Expediente</label><p>${exp.strTipoExpediente||'-'}</p></div>
-      <div class="campo"><label>Materia</label><p>${exp.strMateria||'-'}</p></div>
-      <div class="campo"><label>Fecha Presentación</label><p>${(exp.strFechaPresentacion||exp.strFechaRecepcion||'-').toString().substring(0,10)}</p></div>
-      <div class="campo"><label>Estado JEE</label><p>${exp.strEstadoJEE||'-'}</p></div>
-      <div class="campo"><label>Procedencia</label><p>${exp.strProcedencia||'-'}</p></div>
-      <div class="campo"><label>Tipo de Elección</label><p>${exp.strTipoEleccion||'-'}</p></div>
+      <div class="campo"><label>Tipo de Expediente</label><p>${principal.strTipoExpediente||'-'}</p></div>
+      <div class="campo"><label>Materia</label><p>${principal.strMateria||'-'}</p></div>
+      <div class="campo"><label>Etapa</label><p>${principal.strEtapa||'-'}</p></div>
+      <div class="campo"><label>Estado</label><p>${principal.strEstado||'-'}</p></div>
+      <div class="campo"><label>Jurado Competencia</label><p>${principal.strJuradoCompetencia||'-'}</p></div>
+      <div class="campo"><label>Jurado Creación</label><p>${principal.strJuradoCreacion||'-'}</p></div>
     </div>
-    ${docsHTML}
-    ${candsHTML}
-    ${(!docs.length && !cands.length) ? `<div class="seccion-titulo">Datos crudos (debug)</div><pre>${JSON.stringify(data, null, 2)}</pre>` : ''}
+    ${hijosHTML}
+    <div class="seccion-titulo">Datos completos (debug)</div>
+    <pre>${JSON.stringify(data, null, 2)}</pre>
     <div style="margin-top:20px;text-align:right">
       <a class="btn-jne" href="https://plataformahistorico.jne.gob.pe/Expediente/BusquedaExpediente" target="_blank">Ver en plataforma JNE →</a>
     </div>
