@@ -17,12 +17,7 @@
     .header-text h1 { font-size: 16px; color: #333; }
     .header-text p { font-size: 13px; color: #888; }
     .exp-titulo { font-size: 22px; font-weight: 700; color: #c0392b; margin-bottom: 4px; }
-    .estado-badge {
-      display: inline-block; padding: 4px 12px; border-radius: 20px;
-      font-size: 12px; font-weight: 600; margin-bottom: 20px;
-    }
-    .estado-verde { background: #e8f8f0; color: #27ae60; }
-    .estado-gris { background: #f0f2f5; color: #888; }
+    .estado-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; margin-bottom: 20px; background: #e8f8f0; color: #27ae60; }
     .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
     .campo label { font-size: 11px; text-transform: uppercase; color: #aaa; font-weight: 600; letter-spacing: 0.5px; }
     .campo p { font-size: 14px; color: #333; font-weight: 500; margin-top: 3px; }
@@ -34,14 +29,9 @@
     .spinner-wrap { text-align: center; padding: 40px; }
     .spinner { width: 36px; height: 36px; border: 3px solid #f0f2f5; border-top: 3px solid #c0392b; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .error-msg { text-align: center; padding: 40px; color: #c0392b; }
-    .error-msg a { color: #c0392b; font-weight: 600; }
-    .btn-jne {
-      display: inline-block; margin-top: 20px; background: #c0392b; color: white;
-      border-radius: 8px; padding: 11px 22px; font-size: 14px; font-weight: 600;
-      text-decoration: none; border: none; cursor: pointer;
-    }
+    .btn-jne { display: inline-block; margin-top: 20px; background: #c0392b; color: white; border-radius: 8px; padding: 11px 22px; font-size: 14px; font-weight: 600; text-decoration: none; border: none; cursor: pointer; }
     .btn-jne:hover { background: #a93226; }
+    pre { background: #f8f8f8; padding: 12px; border-radius: 8px; font-size: 11px; overflow-x: auto; max-height: 300px; }
   </style>
 </head>
 <body>
@@ -64,15 +54,18 @@ const params = new URLSearchParams(window.location.search);
 const exp = params.get('exp');
 
 if (!exp) {
-  document.getElementById('card').innerHTML += `<p style="color:#888;text-align:center;padding:20px">No se especificó número de expediente.</p>`;
+  document.getElementById('card').innerHTML += `<p style="color:#888;text-align:center;padding:20px">No se especificó número de expediente. Usa ?exp=000634</p>`;
 } else {
   const codigo = 'SEPEG.2026' + exp.padStart(6, '0');
   cargarExpediente(codigo);
 }
 
 async function cargarExpediente(codigo) {
+  const targetUrl = 'https://plataformahistorico.jne.gob.pe/Expediente/BuscandoCodigo';
+  const proxyUrl = 'https://corsproxy.io/?url=' + encodeURIComponent(targetUrl);
+
   try {
-    const res = await fetch('https://plataformahistorico.jne.gob.pe/Expediente/BuscandoCodigo', {
+    const res = await fetch(proxyUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ strNumExpedienteFiltro: codigo })
@@ -83,20 +76,17 @@ async function cargarExpediente(codigo) {
     mostrar(codigo, data);
 
   } catch (e) {
-    // CORS bloqueado — fallback: abrir plataforma JNE
     document.getElementById('card').innerHTML = `
       <div class="header">
         <div class="badge">JNE</div>
         <div class="header-text"><h1>Plataforma Histórica</h1><p>Búsqueda de Expedientes</p></div>
       </div>
       <div style="text-align:center;padding:30px 0">
-        <div style="font-size:40px;margin-bottom:12px">📋</div>
+        <div style="font-size:40px;margin-bottom:12px">⚠️</div>
         <div class="exp-titulo">${codigo}</div>
-        <p style="color:#888;font-size:14px;margin:12px 0 20px">Haz clic para ver el expediente en la plataforma JNE</p>
-        <a class="btn-jne" href="https://plataformahistorico.jne.gob.pe/Expediente/BusquedaExpediente" target="_blank">
-          Ver en plataforma JNE →
-        </a>
-        <p style="font-size:11px;color:#bbb;margin-top:16px">Copia el código: <strong style="color:#c0392b">${codigo}</strong> y pégalo en el buscador</p>
+        <p style="color:#888;font-size:14px;margin:12px 0 20px">No se pudo cargar automáticamente (${e.message}).<br>Búscalo manualmente en la plataforma JNE:</p>
+        <a class="btn-jne" href="https://plataformahistorico.jne.gob.pe/Expediente/BusquedaExpediente" target="_blank">Ir a la plataforma JNE →</a>
+        <p style="font-size:11px;color:#bbb;margin-top:16px">Código: <strong style="color:#c0392b">${codigo}</strong></p>
       </div>
     `;
   }
@@ -112,13 +102,7 @@ function mostrar(codigo, data) {
     docsHTML = `<div class="seccion-titulo">Documentos (${docs.length})</div>
     <table><thead><tr><th>#</th><th>Fecha</th><th>N° Documento</th><th>Tipo</th><th>Estado</th></tr></thead><tbody>`;
     docs.forEach((d, i) => {
-      docsHTML += `<tr>
-        <td>${i+1}</td>
-        <td>${(d.strFechaDocumento||'').substring(0,10)}</td>
-        <td>${d.strNroDocumento||d.strCodArchivo||'-'}</td>
-        <td>${d.strTipoExpediente||'-'}</td>
-        <td>${d.strEstadoExped||'-'}</td>
-      </tr>`;
+      docsHTML += `<tr><td>${i+1}</td><td>${(d.strFechaDocumento||'').substring(0,10)}</td><td>${d.strNroDocumento||d.strCodArchivo||'-'}</td><td>${d.strTipoExpediente||'-'}</td><td>${d.strEstadoExped||'-'}</td></tr>`;
     });
     docsHTML += '</tbody></table>';
   }
@@ -128,12 +112,7 @@ function mostrar(codigo, data) {
     candsHTML = `<div class="seccion-titulo">Candidatos (${cands.length})</div>
     <table><thead><tr><th>Pos</th><th>DNI</th><th>Apellidos y Nombres</th><th>Estado</th></tr></thead><tbody>`;
     cands.forEach(c => {
-      candsHTML += `<tr>
-        <td>${c.intPosicion||'-'}</td>
-        <td>${c.strDocumentoIdentidad||'-'}</td>
-        <td>${(c.strApellidoPaterno||'')} ${(c.strApellidoMaterno||'')} ${(c.strNombres||'')}</td>
-        <td>${c.strEstado||'-'}</td>
-      </tr>`;
+      candsHTML += `<tr><td>${c.intPosicion||'-'}</td><td>${c.strDocumentoIdentidad||'-'}</td><td>${(c.strApellidoPaterno||'')} ${(c.strApellidoMaterno||'')} ${(c.strNombres||'')}</td><td>${c.strEstado||'-'}</td></tr>`;
     });
     candsHTML += '</tbody></table>';
   }
@@ -144,17 +123,18 @@ function mostrar(codigo, data) {
       <div class="header-text"><h1>Plataforma Histórica</h1><p>Búsqueda de Expedientes</p></div>
     </div>
     <div class="exp-titulo">${codigo}</div>
-    <span class="estado-badge ${exp.strEstadoExped ? 'estado-verde' : 'estado-gris'}">${exp.strEstadoExped||'Sin estado'}</span>
+    <span class="estado-badge">${exp.strEstadoJEE || exp.strEstadoExped || 'Sin estado'}</span>
     <div class="grid">
       <div class="campo"><label>Tipo de Expediente</label><p>${exp.strTipoExpediente||'-'}</p></div>
       <div class="campo"><label>Materia</label><p>${exp.strMateria||'-'}</p></div>
-      <div class="campo"><label>Fecha Presentación</label><p>${(exp.strFechaRecepcion||'-').substring(0,10)}</p></div>
-      <div class="campo"><label>Estado JNE</label><p>${exp.strEstadoJNE||'-'}</p></div>
-      <div class="campo"><label>Organización Política</label><p>${exp.strOrganizacionPolitica||'-'}</p></div>
+      <div class="campo"><label>Fecha Presentación</label><p>${(exp.strFechaPresentacion||exp.strFechaRecepcion||'-').toString().substring(0,10)}</p></div>
+      <div class="campo"><label>Estado JEE</label><p>${exp.strEstadoJEE||'-'}</p></div>
+      <div class="campo"><label>Procedencia</label><p>${exp.strProcedencia||'-'}</p></div>
       <div class="campo"><label>Tipo de Elección</label><p>${exp.strTipoEleccion||'-'}</p></div>
     </div>
     ${docsHTML}
     ${candsHTML}
+    ${(!docs.length && !cands.length) ? `<div class="seccion-titulo">Datos crudos (debug)</div><pre>${JSON.stringify(data, null, 2)}</pre>` : ''}
     <div style="margin-top:20px;text-align:right">
       <a class="btn-jne" href="https://plataformahistorico.jne.gob.pe/Expediente/BusquedaExpediente" target="_blank">Ver en plataforma JNE →</a>
     </div>
