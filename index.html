@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>JNE – Ir a Expediente</title>
+  <title>JNE – Expediente</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -21,185 +21,105 @@
       padding: 36px 40px;
       width: 420px;
       max-width: 95vw;
-    }
-    .logo {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 24px;
+      text-align: center;
     }
     .logo-badge {
       background: #c0392b;
       color: white;
       font-weight: 700;
-      font-size: 14px;
-      padding: 6px 10px;
+      font-size: 16px;
+      padding: 8px 14px;
       border-radius: 6px;
+      display: inline-block;
+      margin-bottom: 16px;
       letter-spacing: 1px;
     }
-    .logo-text {
-      font-size: 13px;
-      color: #555;
-      line-height: 1.3;
-    }
-    h1 {
-      font-size: 18px;
-      color: #1a1a2e;
-      margin-bottom: 6px;
-    }
-    .subtitle {
-      font-size: 13px;
-      color: #888;
-      margin-bottom: 24px;
-    }
-    label {
-      font-size: 13px;
-      font-weight: 600;
-      color: #444;
-      display: block;
-      margin-bottom: 6px;
-    }
-    .input-row {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 8px;
-    }
-    .prefix {
-      background: #f0f2f5;
-      border: 1px solid #ddd;
+    h1 { font-size: 17px; color: #1a1a2e; margin-bottom: 8px; }
+    .codigo {
+      font-size: 22px;
+      font-weight: 700;
+      color: #c0392b;
+      background: #fdf0ef;
       border-radius: 8px;
-      padding: 10px 12px;
-      font-size: 14px;
-      color: #666;
-      white-space: nowrap;
-      display: flex;
-      align-items: center;
+      padding: 12px 20px;
+      display: inline-block;
+      margin: 16px 0;
+      letter-spacing: 2px;
     }
-    input[type="text"] {
-      flex: 1;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      padding: 10px 14px;
-      font-size: 15px;
-      font-weight: 600;
-      letter-spacing: 1px;
-      outline: none;
-      transition: border-color 0.2s;
+    .msg { font-size: 14px; color: #666; margin-bottom: 6px; }
+    .submsg { font-size: 12px; color: #aaa; margin-top: 16px; }
+    .spinner {
+      width: 32px; height: 32px;
+      border: 3px solid #f0f2f5;
+      border-top: 3px solid #c0392b;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 20px auto 0;
     }
-    input[type="text"]:focus { border-color: #c0392b; }
-    .hint {
-      font-size: 12px;
-      color: #aaa;
-      margin-bottom: 20px;
-    }
+    @keyframes spin { to { transform: rotate(360deg); } }
     button {
-      width: 100%;
+      margin-top: 20px;
       background: #c0392b;
       color: white;
       border: none;
       border-radius: 8px;
-      padding: 13px;
+      padding: 12px 28px;
       font-size: 15px;
       font-weight: 600;
       cursor: pointer;
-      transition: background 0.2s;
     }
     button:hover { background: #a93226; }
-    button:disabled { background: #ccc; cursor: not-allowed; }
-    #status {
-      margin-top: 14px;
-      font-size: 13px;
-      text-align: center;
-      color: #888;
-      min-height: 20px;
-    }
-    #status.error { color: #c0392b; }
-    .divider {
-      border: none;
-      border-top: 1px solid #eee;
-      margin: 24px 0 16px;
-    }
-    .url-preview {
-      font-size: 12px;
-      color: #aaa;
-      word-break: break-all;
-      background: #f9f9f9;
-      border-radius: 6px;
-      padding: 8px 10px;
-    }
-    .url-preview span { color: #c0392b; font-weight: 600; }
   </style>
 </head>
 <body>
-<div class="card">
-  <div class="logo">
-    <div class="logo-badge">JNE</div>
-    <div class="logo-text">Plataforma Histórica<br>Búsqueda de Expedientes</div>
-  </div>
-
-  <h1>Ir a Expediente</h1>
-  <p class="subtitle">Ingresa el número y abre directamente en la plataforma JNE.</p>
-
-  <label for="numExp">Número de Expediente</label>
-  <div class="input-row">
-    <div class="prefix">SEPEG.2021</div>
-    <input type="text" id="numExp" placeholder="000634" maxlength="6" inputmode="numeric" />
-  </div>
-  <p class="hint">Solo los 6 dígitos finales (ej: 000634)</p>
-
-  <button onclick="irAExpediente()">Abrir Expediente →</button>
-  <div id="status"></div>
-
-  <hr class="divider">
-  <div class="url-preview" id="preview">
-    Código completo: <span id="codigoPreview">SEPEG.2021______</span>
-  </div>
+<div class="card" id="card">
+  <div class="logo-badge">JNE</div>
+  <h1>Abriendo expediente...</h1>
+  <div class="spinner"></div>
+  <p class="submsg">Serás redirigido a la Plataforma Electoral del JNE</p>
 </div>
 
 <script>
-  const input = document.getElementById('numExp');
-  const preview = document.getElementById('codigoPreview');
+  const params = new URLSearchParams(window.location.search);
+  const exp = params.get('exp');
 
-  input.addEventListener('input', () => {
-    const val = input.value.padStart(6, '_').slice(-6);
-    preview.textContent = 'SEPEG.2021' + (input.value || '______');
-  });
+  if (exp) {
+    const codigo = 'SEPEG.2026' + exp.padStart(6, '0');
+    document.querySelector('h1').textContent = 'Abriendo expediente...';
 
-  input.addEventListener('keydown', e => {
-    if (e.key === 'Enter') irAExpediente();
-  });
+    // Mostrar el código
+    const div = document.createElement('div');
+    div.className = 'codigo';
+    div.textContent = codigo;
+    document.querySelector('.spinner').before(div);
 
-  function irAExpediente() {
-    const num = input.value.trim();
-    if (!num || !/^\d{1,6}$/.test(num)) {
-      setStatus('Ingresa un número válido (hasta 6 dígitos).', true);
-      return;
-    }
+    // Copiar al portapapeles y abrir la plataforma
+    setTimeout(() => {
+      navigator.clipboard.writeText(codigo).catch(() => {});
+      window.location.href = 'https://plataformahistorico.jne.gob.pe/Expediente/BusquedaExpediente';
+    }, 800);
 
-    const codigo = 'SEPEG.2021' + num.padStart(6, '0');
-    setStatus('Abriendo expediente ' + codigo + '...');
-
-    // Crear formulario POST dinámico
-    const form = document.createElement('form');
-    form.method = 'GET';
-    form.action = 'https://plataformahistorico.jne.gob.pe/Expediente/BusquedaExpediente';
-    form.target = '_blank';
-    document.body.appendChild(form);
-    form.submit();
-    document.body.removeChild(form);
-
-    // Copiar código al portapapeles para pegar en el buscador
-    navigator.clipboard.writeText(codigo).then(() => {
-      setStatus('✓ Se abrió la plataforma y se copió "' + codigo + '" al portapapeles. Pégalo en el buscador.');
-    }).catch(() => {
-      setStatus('Se abrió la plataforma. Busca el código: ' + codigo);
-    });
+  } else {
+    // Sin parámetro: mostrar formulario manual
+    const card = document.getElementById('card');
+    card.innerHTML = `
+      <div class="logo-badge">JNE</div>
+      <h1>Buscar Expediente</h1>
+      <p class="msg" style="margin-top:12px">Ingresa el número de expediente</p>
+      <div style="display:flex;gap:8px;margin-top:16px">
+        <div style="background:#f0f2f5;border:1px solid #ddd;border-radius:8px;padding:10px 12px;font-size:13px;color:#666;white-space:nowrap;display:flex;align-items:center">SEPEG.2026</div>
+        <input id="num" type="text" placeholder="000634" maxlength="6" inputmode="numeric"
+          style="flex:1;border:1px solid #ddd;border-radius:8px;padding:10px 14px;font-size:16px;font-weight:700;letter-spacing:1px;outline:none">
+      </div>
+      <button onclick="ir()">Ir al expediente →</button>
+    `;
+    document.getElementById('num').addEventListener('keydown', e => { if(e.key==='Enter') ir(); });
   }
 
-  function setStatus(msg, isError = false) {
-    const el = document.getElementById('status');
-    el.textContent = msg;
-    el.className = isError ? 'error' : '';
+  function ir() {
+    const num = document.getElementById('num').value.trim();
+    if (!num || !/^\d+$/.test(num)) return;
+    window.location.href = '?exp=' + num.padStart(6,'0');
   }
 </script>
 </body>
