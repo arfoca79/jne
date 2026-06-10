@@ -62,7 +62,7 @@ if (!exp) {
 
 async function cargarExpediente(codigo) {
   const targetUrl = 'https://plataformahistorico.jne.gob.pe/Expediente/BuscandoCodigo';
-  const proxyUrl = 'https://corsproxy.io/?url=' + encodeURIComponent(targetUrl);
+  const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(targetUrl);
 
   try {
     const res = await fetch(proxyUrl, {
@@ -76,6 +76,25 @@ async function cargarExpediente(codigo) {
     mostrar(codigo, data);
 
   } catch (e) {
+    // Intento 2: corsproxy.io como fallback
+    try {
+      const proxyUrl2 = 'https://corsproxy.io/?url=' + encodeURIComponent(targetUrl);
+      const res2 = await fetch(proxyUrl2, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ strNumExpedienteFiltro: codigo })
+      });
+      if (!res2.ok) throw new Error('Error HTTP ' + res2.status);
+      const data2 = await res2.json();
+      mostrar(codigo, data2);
+      return;
+    } catch (e2) {
+      mostrarError(codigo, e.message + ' / ' + e2.message);
+    }
+  }
+}
+
+function mostrarError(codigo, msg) {
     document.getElementById('card').innerHTML = `
       <div class="header">
         <div class="badge">JNE</div>
@@ -84,12 +103,11 @@ async function cargarExpediente(codigo) {
       <div style="text-align:center;padding:30px 0">
         <div style="font-size:40px;margin-bottom:12px">⚠️</div>
         <div class="exp-titulo">${codigo}</div>
-        <p style="color:#888;font-size:14px;margin:12px 0 20px">No se pudo cargar automáticamente (${e.message}).<br>Búscalo manualmente en la plataforma JNE:</p>
+        <p style="color:#888;font-size:14px;margin:12px 0 20px">No se pudo cargar automáticamente (${msg}).<br>Búscalo manualmente en la plataforma JNE:</p>
         <a class="btn-jne" href="https://plataformahistorico.jne.gob.pe/Expediente/BusquedaExpediente" target="_blank">Ir a la plataforma JNE →</a>
         <p style="font-size:11px;color:#bbb;margin-top:16px">Código: <strong style="color:#c0392b">${codigo}</strong></p>
       </div>
     `;
-  }
 }
 
 function mostrar(codigo, data) {
