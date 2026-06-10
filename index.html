@@ -67,7 +67,7 @@ async function cargarExpediente(codigo) {
   try {
     const res = await fetch(proxyUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify({ strNumExpedienteFiltro: codigo })
     });
 
@@ -81,7 +81,7 @@ async function cargarExpediente(codigo) {
       const proxyUrl2 = 'https://corsproxy.io/?url=' + encodeURIComponent(targetUrl);
       const res2 = await fetch(proxyUrl2, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify({ strNumExpedienteFiltro: codigo })
       });
       if (!res2.ok) throw new Error('Error HTTP ' + res2.status);
